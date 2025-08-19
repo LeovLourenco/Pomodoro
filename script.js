@@ -120,13 +120,14 @@ function resetTimer() {
     statusElement.textContent = "Estudo";
     pomodoroCount = 0;
     pomodoroCounterElement.textContent = `Pomodoros: 0`;
-    remainingTime = POMODORO_DURATION;
+    currentDuration = POMODORO_DURATION; // ESSA LINHA FOI ADICIONADA
+    remainingTime = currentDuration;
     updateTimerDisplay();
 }
 
 function setPomodoroTime(minutes) {
     POMODORO_DURATION = minutes * 60;
-    resetTimer();
+    resetTimer(); // ESSA FUNÇÃO É AGORA CHAMADA AQUI
     timeOptions.forEach(btn => btn.classList.remove('active'));
     document.querySelector(`[data-minutes="${minutes}"]`).classList.add('active');
 }
