@@ -8,8 +8,19 @@
 </head>
 <body>
 
-    <div class="timer-container">
+   <div class="timer-container">
         <h1>Pomodoro</h1>
+        
+        <div class="time-options">
+            <button data-minutes="25" class="time-option active">25 min</button>
+            <button data-minutes="45" class="time-option">45 min</button>
+            <button data-minutes="60" class="time-option">60 min</button>
+            <div class="custom-time-container">
+                <input type="number" id="custom-minutes" placeholder="Tempo (min)">
+                <button id="set-custom-time-btn">Definir</button>
+            </div>
+        </div>
+
         <div id="status">Estudo</div>
         <div id="timer">25:00</div>
         <div class="controls">
@@ -18,6 +29,11 @@
             <button id="reset-btn">Reiniciar</button>
         </div>
         <div id="pomodoro-counter">Pomodoros: 0</div>
+        
+        <div class="total-time-container">
+            <h3>Tempo Total de Estudo</h3>
+            <div id="total-time-display">Carregando...</div>
+        </div>
     </div>
 
     <script src="script.js"></script>

@@ -5,14 +5,22 @@ const pauseBtn = document.getElementById('pause-btn');
 const resetBtn = document.getElementById('reset-btn');
 const statusElement = document.getElementById('status');
 const pomodoroCounterElement = document.getElementById('pomodoro-counter');
+const totalTimeElement = document.getElementById('total-time-display');
+const timeOptions = document.querySelectorAll('.time-option');
+const customMinutesInput = document.getElementById('custom-minutes');
+const setCustomTimeBtn = document.getElementById('set-custom-time-btn');
+
+// URL da API hospedada no Hostinger
+const API_URL = 'https://seu-dominio.com/api.php'; // SUBSTITUA PELO SEU DOMÍNIO
 
 // Configurações e estado inicial
-const POMODORO_DURATION = 25 * 60; // 25 minutos em segundos
-const SHORT_BREAK_DURATION = 5 * 60; // 5 minutos em segundos
-const LONG_BREAK_DURATION = 15 * 60; // 15 minutos em segundos
+let POMODORO_DURATION = 25 * 60; // Duração inicial
+const SHORT_BREAK_DURATION = 5 * 60;
+const LONG_BREAK_DURATION = 15 * 60;
 
 let pomodoroCount = 0;
 let isStudyMode = true;
+let currentDuration = POMODORO_DURATION;
 
 let timerId = null;
 let isRunning = false;
@@ -27,6 +35,35 @@ function updateTimerDisplay() {
         `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+async function fetchTotalStudyTime() {
+    try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        const totalMinutes = data.total_study_time || 0;
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        totalTimeElement.textContent = `${hours}h ${minutes}min`;
+    } catch (error) {
+        console.error('Erro ao buscar tempo total de estudo:', error);
+        totalTimeElement.textContent = 'Erro ao carregar';
+    }
+}
+
+async function sendSessionData(duration, type) {
+    const payload = { duration: duration, type: type };
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        await response.json();
+        await fetchTotalStudyTime();
+    } catch (error) {
+        console.error('Erro ao salvar a sessão:', error);
+    }
+}
+
 function startTimer() {
     if (isRunning) return;
     isRunning = true;
@@ -34,11 +71,9 @@ function startTimer() {
 
     timerId = setInterval(() => {
         const elapsedTime = (Date.now() - startTime) / 1000;
-        const newRemainingTime = (isStudyMode ?
-                                 (pomodoroCount % 4 === 0 && pomodoroCount > 0 ? LONG_BREAK_DURATION : SHORT_BREAK_DURATION)
-                                 : POMODORO_DURATION) - elapsedTime;
+        const totalTime = currentDuration;
         
-        remainingTime = (isStudyMode ? POMODORO_DURATION : (pomodoroCount % 4 === 0 && pomodoroCount > 0) ? LONG_BREAK_DURATION : SHORT_BREAK_DURATION) - elapsedTime;
+        remainingTime = totalTime - elapsedTime;
 
         if (remainingTime <= 0) {
             clearInterval(timerId);
@@ -46,26 +81,26 @@ function startTimer() {
             remainingTime = 0;
             updateTimerDisplay();
             
-            // LÓGICA DE ATUALIZAÇÃO E MUDANÇA DE MODO
             if (isStudyMode) {
                 pomodoroCount++;
                 pomodoroCounterElement.textContent = `Pomodoros: ${pomodoroCount}`;
+                sendSessionData(currentDuration / 60, 'estudo');
                 isStudyMode = false;
-                statusElement.textContent = "Descanso Curto";
                 if (pomodoroCount % 4 === 0) {
-                    remainingTime = LONG_BREAK_DURATION;
+                    currentDuration = LONG_BREAK_DURATION;
                     statusElement.textContent = "Descanso Longo";
                 } else {
-                    remainingTime = SHORT_BREAK_DURATION;
+                    currentDuration = SHORT_BREAK_DURATION;
+                    statusElement.textContent = "Descanso Curto";
                 }
             } else {
                 isStudyMode = true;
-                remainingTime = POMODORO_DURATION;
+                currentDuration = POMODORO_DURATION;
                 statusElement.textContent = "Estudo";
             }
             
+            remainingTime = currentDuration;
             updateTimerDisplay();
-            alert('Tempo esgotado! O cronômetro mudou para o próximo modo.');
             return;
         }
         
@@ -77,17 +112,23 @@ function pauseTimer() {
     if (!isRunning) return;
     clearInterval(timerId);
     isRunning = false;
-    // O remainingTime já está sendo atualizado no setInterval
 }
 
 function resetTimer() {
     pauseTimer();
-    remainingTime = POMODORO_DURATION;
     isStudyMode = true;
     statusElement.textContent = "Estudo";
     pomodoroCount = 0;
     pomodoroCounterElement.textContent = `Pomodoros: 0`;
+    remainingTime = POMODORO_DURATION;
     updateTimerDisplay();
+}
+
+function setPomodoroTime(minutes) {
+    POMODORO_DURATION = minutes * 60;
+    resetTimer();
+    timeOptions.forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-minutes="${minutes}"]`).classList.add('active');
 }
 
 // Event Listeners
@@ -95,5 +136,20 @@ startBtn.addEventListener('click', startTimer);
 pauseBtn.addEventListener('click', pauseTimer);
 resetBtn.addEventListener('click', resetTimer);
 
-// Inicializar a exibição
+timeOptions.forEach(button => {
+    button.addEventListener('click', () => {
+        setPomodoroTime(parseInt(button.dataset.minutes));
+    });
+});
+
+setCustomTimeBtn.addEventListener('click', () => {
+    const minutes = parseInt(customMinutesInput.value);
+    if (!isNaN(minutes) && minutes > 0) {
+        setPomodoroTime(minutes);
+        timeOptions.forEach(btn => btn.classList.remove('active'));
+    }
+});
+
+// Inicialização
 updateTimerDisplay();
+fetchTotalStudyTime();
