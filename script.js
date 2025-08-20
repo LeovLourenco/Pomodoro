@@ -9,6 +9,10 @@ const totalTimeElement = document.getElementById('total-time-display');
 const timeOptions = document.querySelectorAll('.time-option');
 const customMinutesInput = document.getElementById('custom-minutes');
 const setCustomTimeBtn = document.getElementById('set-custom-time-btn');
+const breakOptions = document.getElementById('break-options');
+const startShortBreakBtn = document.getElementById('start-short-break-btn');
+const startLongBreakBtn = document.getElementById('start-long-break-btn');
+const skipBreakBtn = document.getElementById('skip-break-btn');
 
 // URL da API hospedada no Hostinger
 const API_URL = 'https://seu-dominio.com/api.php'; // SUBSTITUA PELO SEU DOMÍNIO
@@ -16,7 +20,7 @@ const API_URL = 'https://seu-dominio.com/api.php'; // SUBSTITUA PELO SEU DOMÍNI
 // Configurações e estado inicial
 let POMODORO_DURATION = 25 * 60; // Duração inicial
 const SHORT_BREAK_DURATION = 5 * 60;
-const LONG_BREAK_DURATION = 15 * 60;
+const LONG_BREAK_DURATION = 10 * 60; // Duração de 10 min, como sugerido
 
 let pomodoroCount = 0;
 let isStudyMode = true;
@@ -68,6 +72,7 @@ function startTimer() {
     if (isRunning) return;
     isRunning = true;
     startTime = Date.now();
+    breakOptions.style.display = 'none'; // Esconde as opções de pausa
 
     timerId = setInterval(() => {
         const elapsedTime = (Date.now() - startTime) / 1000;
@@ -85,23 +90,18 @@ function startTimer() {
                 pomodoroCount++;
                 pomodoroCounterElement.textContent = `Pomodoros: ${pomodoroCount}`;
                 sendSessionData(currentDuration / 60, 'estudo');
-                isStudyMode = false;
-                if (pomodoroCount % 4 === 0) {
-                    currentDuration = LONG_BREAK_DURATION;
-                    statusElement.textContent = "Descanso Longo";
-                } else {
-                    currentDuration = SHORT_BREAK_DURATION;
-                    statusElement.textContent = "Descanso Curto";
-                }
+                
+                // Sugere a pausa
+                statusElement.textContent = "Pomodoro concluído!";
+                breakOptions.style.display = 'block';
+                return;
             } else {
                 isStudyMode = true;
                 currentDuration = POMODORO_DURATION;
                 statusElement.textContent = "Estudo";
+                remainingTime = currentDuration;
+                updateTimerDisplay();
             }
-            
-            remainingTime = currentDuration;
-            updateTimerDisplay();
-            return;
         }
         
         updateTimerDisplay();
@@ -120,16 +120,28 @@ function resetTimer() {
     statusElement.textContent = "Estudo";
     pomodoroCount = 0;
     pomodoroCounterElement.textContent = `Pomodoros: 0`;
-    currentDuration = POMODORO_DURATION; // ESSA LINHA FOI ADICIONADA
+    currentDuration = POMODORO_DURATION;
     remainingTime = currentDuration;
     updateTimerDisplay();
 }
 
 function setPomodoroTime(minutes) {
     POMODORO_DURATION = minutes * 60;
-    resetTimer(); // ESSA FUNÇÃO É AGORA CHAMADA AQUI
+    resetTimer();
     timeOptions.forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`[data-minutes="${minutes}"]`).classList.add('active');
+    const selectedBtn = document.querySelector(`[data-minutes="${minutes}"]`);
+    if(selectedBtn) {
+        selectedBtn.classList.add('active');
+    }
+}
+
+function startBreak(duration, type) {
+    isStudyMode = false;
+    currentDuration = duration;
+    statusElement.textContent = type;
+    remainingTime = currentDuration;
+    updateTimerDisplay();
+    startTimer();
 }
 
 // Event Listeners
@@ -149,6 +161,26 @@ setCustomTimeBtn.addEventListener('click', () => {
         setPomodoroTime(minutes);
         timeOptions.forEach(btn => btn.classList.remove('active'));
     }
+});
+
+// Event listeners para os botões de pausa
+startShortBreakBtn.addEventListener('click', () => {
+    startBreak(SHORT_BREAK_DURATION, "Descanso Curto");
+    sendSessionData(SHORT_BREAK_DURATION / 60, 'pausa');
+});
+
+startLongBreakBtn.addEventListener('click', () => {
+    startBreak(LONG_BREAK_DURATION, "Descanso Longo");
+    sendSessionData(LONG_BREAK_DURATION / 60, 'pausa');
+});
+
+skipBreakBtn.addEventListener('click', () => {
+    isStudyMode = true;
+    currentDuration = POMODORO_DURATION;
+    remainingTime = currentDuration;
+    statusElement.textContent = "Estudo";
+    updateTimerDisplay();
+    breakOptions.style.display = 'none';
 });
 
 // Inicialização
