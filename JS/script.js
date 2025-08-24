@@ -14,13 +14,21 @@ const startShortBreakBtn = document.getElementById('start-short-break-btn');
 const startLongBreakBtn = document.getElementById('start-long-break-btn');
 const skipBreakBtn = document.getElementById('skip-break-btn');
 
-// URL da API hospedada no Hostinger
-const API_URL = 'https://seu-dominio.com/api.php'; // SUBSTITUA PELO SEU DOMÍNIO
+// URLs da API
+const API_URL = 'https://seu-dominio.com/api/api.php';
+const LOGIN_URL = 'https://seu-dominio.com/api/login.php';
+const REGISTER_URL = 'https://seu-dominio.com/api/register.php';
+
+// Verificação de autenticação
+const userId = localStorage.getItem('user_id');
+if (!userId) {
+    window.location.href = 'login.html';
+}
 
 // Configurações e estado inicial
-let POMODORO_DURATION = 25 * 60; // Duração inicial
+let POMODORO_DURATION = 25 * 60;
 const SHORT_BREAK_DURATION = 5 * 60;
-const LONG_BREAK_DURATION = 10 * 60; // Duração de 10 min, como sugerido
+const LONG_BREAK_DURATION = 10 * 60;
 
 let pomodoroCount = 0;
 let isStudyMode = true;
@@ -41,7 +49,7 @@ function updateTimerDisplay() {
 
 async function fetchTotalStudyTime() {
     try {
-        const response = await fetch(API_URL);
+        const response = await fetch(`${API_URL}?user_id=${userId}`);
         const data = await response.json();
         const totalMinutes = data.total_study_time || 0;
         const hours = Math.floor(totalMinutes / 60);
@@ -54,7 +62,11 @@ async function fetchTotalStudyTime() {
 }
 
 async function sendSessionData(duration, type) {
-    const payload = { duration: duration, type: type };
+    const payload = { 
+        user_id: userId, // Adiciona o user_id ao payload
+        duration: duration, 
+        type: type 
+    };
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
@@ -72,7 +84,7 @@ function startTimer() {
     if (isRunning) return;
     isRunning = true;
     startTime = Date.now();
-    breakOptions.style.display = 'none'; // Esconde as opções de pausa
+    breakOptions.style.display = 'none';
 
     timerId = setInterval(() => {
         const elapsedTime = (Date.now() - startTime) / 1000;
@@ -91,7 +103,6 @@ function startTimer() {
                 pomodoroCounterElement.textContent = `Pomodoros: ${pomodoroCount}`;
                 sendSessionData(currentDuration / 60, 'estudo');
                 
-                // Sugere a pausa
                 statusElement.textContent = "Pomodoro concluído!";
                 breakOptions.style.display = 'block';
                 return;
@@ -163,7 +174,6 @@ setCustomTimeBtn.addEventListener('click', () => {
     }
 });
 
-// Event listeners para os botões de pausa
 startShortBreakBtn.addEventListener('click', () => {
     startBreak(SHORT_BREAK_DURATION, "Descanso Curto");
     sendSessionData(SHORT_BREAK_DURATION / 60, 'pausa');
@@ -185,4 +195,6 @@ skipBreakBtn.addEventListener('click', () => {
 
 // Inicialização
 updateTimerDisplay();
-fetchTotalStudyTime();
+if (userId) { // Apenas carrega os dados se o usuário estiver logado
+    fetchTotalStudyTime();
+}

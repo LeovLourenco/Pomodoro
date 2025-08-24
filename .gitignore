@@ -1,0 +1,38 @@
+# Arquivos de configuração com dados sensíveis
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+error_log
+access_log
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Dependências (se usar no futuro)
+/vendor/
+/node_modules/
+
+# Arquivos temporários
+*.tmp
+*.cache
+*.bak
+*.swp
+*~
+
+# Uploads (se tiver no futuro)
+/uploads/
+/storage/
+
+# Arquivos de teste
+test.php
+teste.php
